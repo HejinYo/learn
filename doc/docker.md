@@ -91,4 +91,6 @@ docker logs -f CONTAINER_ID/name    //容器日志
 docker inspect CONTAINER_ID/name //容器状态
 docker stop CONTAINER_ID/name  //停止容器
 docker rm CONTAINER_ID/name  //删除容器
+docker stop $(docker ps -q) //停用全部运行中的容器
+docker rm $(docker ps -aq)  //删除全部容器
 ```
