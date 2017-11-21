@@ -73,7 +73,7 @@ $ docker run -itd -p 8080:8080 -p 50000:50000 --name jenkins --privileged=true  
 >> 启动出现的问题
 会卡在启动页面
 ```$xslt
-vim /var/jenkinds/hudson.model.UpdateCenter.xml
+vim /var/jenkins/hudson.model.UpdateCenter.xml
 将url替换成 
 https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/current/update-center.json
 或 
@@ -82,7 +82,9 @@ skye.hejinyo.cn/update-center.json
 ```
 
 # 三、其他命令
->> [docker 命令学习](http://www.runoob.com/docker/docker-pull-command.html)
++ [docker runoob](http://www.runoob.com/docker/docker-pull-command.html)
++ [docker中文网](http://www.docker.org.cn/book/docker/docker-install-package-9.html)
++ [liaoxuefeng](https://www.liaoxuefeng.com/article/001463233913442cdb2d1bd1b1b42e3b0b29eb1ba736c5e000)
 ```$xslt
 systemctl start docker.service  //启动docker
 docker images   //查看下载的镜像
