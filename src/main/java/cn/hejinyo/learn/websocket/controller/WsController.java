@@ -22,7 +22,7 @@ import java.util.Map;
  * @author : heshuangshuang
  * @date : 2017/11/21 15:47
  */
-@Controller
+//@Controller
 public class WsController {
     private static final Logger logger = LoggerFactory.getLogger(WsController.class);
     @Autowired
