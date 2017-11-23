@@ -107,4 +107,79 @@ public class RedisUtils {
             redisTemplate.expireAt(key, expireAt);
         }
     }
+
+    /**
+     * 累加
+     *
+     * @param key
+     * @param delta
+     * @param expireAt
+     * @return
+     */
+    public Long increment(String key, Long delta, Date expireAt) {
+        Long resule = valueOperations.increment(key, delta);
+        if (expireAt != null) {
+            redisTemplate.expireAt(key, expireAt);
+        }
+        return resule;
+    }
+
+    /**
+     * 压栈
+     *
+     * @param key
+     * @param value
+     */
+    public void leftPush(String key, Object value) {
+        listOperations.leftPush(key, toJson(value));
+    }
+
+    /**
+     * 移出并获取列表的第一个元素
+     *
+     * @param key
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public <T> T leftPop(String key, Class<T> clazz) {
+        Object value = listOperations.leftPop(key);
+        return value == null ? null : fromJson(String.valueOf(value), clazz);
+    }
+
+
+    /**
+     * 入队
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    public Long rightPush(String key, Object value) {
+        return listOperations.rightPush(key, toJson(value));
+    }
+
+    /**
+     * 移除并获取列表最后一个元素
+     *
+     * @param key
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public <T> T rightPop(String key, Class<T> clazz) {
+        Object value = listOperations.rightPop(key);
+        return value == null ? null : fromJson(String.valueOf(value), clazz);
+    }
+
+
+    /**
+     * 栈/队列长
+     *
+     * @param key
+     * @return
+     */
+    public Long listSize(String key) {
+        return listOperations.size(key);
+    }
 }
