@@ -20,7 +20,7 @@ public class RedisUtils {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Autowired
-    private ValueOperations<String, Object> valueOperations;
+    private ValueOperations<String, String> valueOperations;
     @Autowired
     private HashOperations<String, String, Object> hashOperations;
     @Autowired
@@ -51,7 +51,7 @@ public class RedisUtils {
     }
 
     public <T> T get(String key, Class<T> clazz, long expire) {
-        String value = (String) valueOperations.get(key);
+        String value = valueOperations.get(key);
         if (expire != NOT_EXPIRE) {
             redisTemplate.expire(key, expire, TimeUnit.SECONDS);
         }
@@ -63,7 +63,7 @@ public class RedisUtils {
     }
 
     public String get(String key, long expire) {
-        String value = (String) valueOperations.get(key);
+        String value = valueOperations.get(key);
         if (expire != NOT_EXPIRE) {
             redisTemplate.expire(key, expire, TimeUnit.SECONDS);
         }

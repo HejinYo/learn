@@ -15,8 +15,8 @@ import java.util.HashMap;
  * @author : HejinYo   hejinyo@gmail.com     2017/11/21 20:40
  * @apiNote :
  */
-//@ServerEndpoint(value = "/socket/{userId}")
-//@Component
+@ServerEndpoint(value = "/socket/{userId}")
+@Component
 public class SocketServer {
     private static final Logger logger = LoggerFactory.getLogger(SocketServer.class);
     private Session session;

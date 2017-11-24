@@ -36,7 +36,7 @@ public class RedisConfig {
     }
 
     @Bean
-    public ValueOperations<String, Object> valueOperations(RedisTemplate<String, Object> redisTemplate) {
+    public ValueOperations<String, String> valueOperations(RedisTemplate<String, String> redisTemplate) {
         return redisTemplate.opsForValue();
     }
 
