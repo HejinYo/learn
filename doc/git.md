@@ -37,4 +37,7 @@ git remote remove origin // 删除关联
 git push -u origin master  //第一次推送master分支的所有内容；
 git push origin master  //以后的提交
 git glone git@github.com:HejinYo/document.git //克隆
+git stash
+git pull
+git stash pop
 ```
