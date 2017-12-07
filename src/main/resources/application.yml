@@ -39,6 +39,7 @@ spring:
 mybatis:
    type-aliases-package: cn.hejinyo
    mapper-locations: classpath*:cn/hejinyo/**/dao/*Dao.xml
+spring.thymeleaf.mode: LEGACYHTML5
 
 # 线程池配置
 corePoolSize: 40
