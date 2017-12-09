@@ -43,6 +43,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         loger.info("===========> {}, {}", webUri, request.uri());
 
+
         String uri = StringUtils.substringBefore(request.uri(), "?");
         if (webUri.equalsIgnoreCase(uri)) {//获取webSocket参数
             QueryStringDecoder query = new QueryStringDecoder(request.uri());
