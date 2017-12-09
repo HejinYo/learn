@@ -26,10 +26,15 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+        logger.info("===========处理http请求> 请求路径：{}", request.uri());
+        System.out.println("=================================读取request信息=======================");
+        ctx.fireChannelRead(request.retain());
+        System.out.println("=================================读取信息完成=======================");
 
     }
 
     private void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+        System.out.println("============================================================");
         if (!req.getDecoderResult().isSuccess() || (!"websocket".equals(req.headers().get("Upgrade")))) {
             sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST));
             return;
