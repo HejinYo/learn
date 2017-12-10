@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private Logger loger = LoggerFactory.getLogger(getClass());
     private final String webUri;
-    private final String INDEX = "E:\\oworkspace\\test\\src\\main\\webapp\\index.html";
+    private final String INDEX = "C:\\java\\learn\\learn\\src\\main\\resources\\templates\\index.html";
 
     public HttpRequestHandler(String webUri) {
         this.webUri = webUri;
@@ -42,6 +42,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         loger.info("===========> {}, {}", webUri, request.uri());
+
 
         String uri = StringUtils.substringBefore(request.uri(), "?");
         if (webUri.equalsIgnoreCase(uri)) {//获取webSocket参数
