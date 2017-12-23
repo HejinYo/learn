@@ -4,7 +4,7 @@
 [Centos7安装并配置mysql5.6完美教程](http://blog.csdn.net/qq_17776287/article/details/53536761)
 
 ### 删除自带的mariadb
-```angular2html
+```$xslt
 #查询出来已安装的mariadb 
 rpm -qa|grep mariadb
 
@@ -12,7 +12,7 @@ rpm -qa|grep mariadb
 rpm -e --nodeps mariadb-libs-5.5.41-2.el7_0.x86_64
 ```
 ### 准备工作
-```angular2html
+```$xslt
 #本地上传
 rz  mysql-5.6.38-linux-glibc2.12-x86_64.tar.gz
 #网上下载
@@ -24,7 +24,7 @@ mv mysql-5.6.38-linux-glibc2.12-x86_64 /usr/local/mysql
 ```
 
 ### 开始配置
-```angular2html
+```$xslt
 #创建用户组
 groupadd mysql
 
@@ -80,7 +80,7 @@ systemctl start mysqld / service mysqld start
 systemctl status mysqld / service mysqld status
 ```
 ### mysql 命令添加环境变量
-```angular2html
+```$xslt
 #个人
 vim ~/.bash_profile
 #全局 
@@ -90,7 +90,7 @@ source ~/.bash_profile
 ```
 
 ### mysql配置
-```angular2html
+```$xslt
 mysql -u root -p
 use mysql;
 #修改密码
@@ -104,7 +104,7 @@ flush privileges;
 
 ## 二、主从配置
 > 主配置
-```angular2html
+```$xslt
 每个从数据库会使用一个MySQL账号来连接主数据库，所以我们要在主数据库里创建一个账号，并且该账号要授予 REPLICATION SLAVE 权限
 #添加用户
 CREATE USER 'crm_slave_1'@'192.168.10.%' IDENTIFIED BY 'crm_slave_1';
@@ -137,7 +137,7 @@ show master status;
 > 从配置
 [参考1](http://blog.csdn.net/envon123/article/details/76615059)
 [参考2](https://www.cnblogs.com/fxmemory/p/7198663.html)
-```angular2html
+```$xslt
 #修改配置文件
 vim /etc/my.cnf
     [mysqld]
@@ -174,3 +174,88 @@ mysql> show slave status\G;
 start slave 后复制正常
 
 ```
+
+# 服务自启
+> CentOS 7的服务systemctl脚本存放在：/usr/lib/systemd/，有系统（system）和用户（user）之分，需要开机不登陆就能运行的程序，存在系统服务里，即：/usr/lib/systemd/system目录下
+  每一个服务以.service结尾，一般会分为3部分：[Unit]、[Service]和[Install]，我写的这个服务用于开机运行tomcat项目:
+
+```$xslt
+vim /usr/lib/systemd/system/tomcat.service  
+[Unit]  
+Description=tomcatapi  
+After=network.target  
+   
+[Service]  
+Type=forking  
+PIDFile=/usr/local/tomcat/tomcat.pid  
+ExecStart=/usr/local/tomcat/bin/startup.sh  
+ExecReload=  
+ExecStop=/usr/local/tomcat/bin/shutdown.sh  
+PrivateTmp=true  
+   
+[Install]  
+WantedBy=multi-user.target  
+```
+[Unit]部分主要是对这个服务的说明，内容包括Description和After，Description用于描述服务，After用于描述服务类别;
+[Service]部分是服务的关键，是服务的一些具体运行参数的设置，这里Type=forking是后台运行的形式，PIDFile为存放PID的文件路径，ExecStart为服务的运行命令，ExecReload为重启命令，ExecStop为停止命令，PrivateTmp=True表示给服务分配独立的临时空间，注意：[Service]部分的启动、重启、停止命令全部要求使用绝对路径，使用相对路径则会报错;
+[Install]部分是服务安装的相关设置，可设置为多用户的
+服务脚本按照上面编写完成后，以754的权限保存在/usr/lib/systemd/system目录下，这时就可以利用systemctl进行测试了
+最后用以下命令将服务加入开机启动即可：
+```$xslt
+systemctl enable tomcat  
+```
+
+# 三、Redis 安装[参考](http://blog.csdn.net/gxw19874/article/details/51992125)
+## 下载文件
+```$xslt
+wget http://download.redis.io/releases/redis-4.0.6.tar.gz
+tar -xvf redis-4.0.6.tar.gz
+cd redis-4.0.6.tar.gz
+yum -y install gcc
+make 
+#如果编译报错，使用以下命令
+#jemalloc重载了Linux下的ANSI C的malloc和free函数。解决办法：make时添加参数。
+make MALLOC=libc
+
+mkdir /usr/local/redis
+chmod 755 /usr/local/redis
+cp src/redis-server /usr/local/redis
+cp src/redis-cli /usr/local/redis
+cp redis.conf /etc/init.d/redis
+
+vim /etc/local/redis/redis.conf
+/daemonize yes //后台运行
+
+vim /etc/init.d/redis
+
+    # chkconfig:   2345 90 10
+    # description:  Redis is a persistent key-value database
+    REDISPORT=6379
+    EXEC=/usr/local/redis/redis-server
+    CLIEXEC=/usr/local/redis/redis-cli
+    PIDFILE=/var/run/redis_${REDISPORT}.pid
+    CONF="/usr/local/redis/redis.conf"
+
+#守护进程
+chkconfig --add redis
+# 重载 systemctl 单元
+systemctl daemon-reload
+systemctl start redis
+```
+
+##
+systemctl daemon-reload
+
+
+
+
+
+
+
+
+
+
+
+
+
+
