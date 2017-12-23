@@ -39,15 +39,25 @@ cp support-files/my-default.cnf /etc/my.cnf
 #编辑配置文件
 vim /etc/my.cnf
     [mysqld]
+    #禁用授权，不需要密码登录
+    #skip-grant-tables
     #设置安装目录
     basedir = /usr/local/mysql
     #设置数据库目录
     datadir = /usr/local/mysql/data
     #设置端口
     port = 3306
+    # pid路径
+    pid-file=/usr/local/mysql/mysql.pid
+    #日志路径
+    log-error=/var/log/mysql/error.log
+
+
 
 #修改权限
 chown -R mysql:mysql /usr/local/mysql/
+mkdir /var/log/mysql
+chown -R mysql:mysql /var/log/mysql/
 
 #安装依赖
 yum -y install autoconf
@@ -71,7 +81,10 @@ systemctl status mysqld / service mysqld status
 ```
 ### mysql 命令添加环境变量
 ```angular2html
-vim ~/.bash_profile 
+#个人
+vim ~/.bash_profile
+#全局 
+vim /etc/profile
 export PATH=$PATH:/usr/local/mysql/bin
 source ~/.bash_profile 
 ```
@@ -106,6 +119,8 @@ vim /etc/my.cnf
     log-bin=mysql-bin
     binlog-do-db=yoyo //要同步的mstest数据库,要同步多个数据库，就多加几个replicate-db-db=数据库名 
     #binlog-ignore-db=mysql //要忽略的数据库
+    #在使用InnoDB的事务复制，为了尽可能持久和数据一致，
+    #你应该在my.cnf里配置innodb_flush_log_at_trx_commit=1 和 sync_binlog=1；
 
 #重启服务
 systemctl restart mysqld
@@ -152,5 +167,10 @@ mysql> show slave status\G;
              Slave_IO_Running: Yes  # 两个Yes才算成功
             Slave_SQL_Running: Yes  # 两个Yes才算成功
               Replicate_Do_DB: yoyo
+              
+              
+# slave 服务重置
+使用reset slave all清空所有的复制信息，然后重置gtid_purged和master.infor
+start slave 后复制正常
 
 ```
