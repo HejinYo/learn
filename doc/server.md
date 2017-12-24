@@ -78,6 +78,9 @@ chkconfig --list mysqld
 systemctl start mysqld / service mysqld start
 #检查
 systemctl status mysqld / service mysqld status
+#防火墙
+firewall-cmd --add-port=3306/tcp --permanent
+systemctl restat firewalld
 ```
 ### mysql 命令添加环境变量
 ```$xslt
@@ -226,8 +229,119 @@ cp redis.conf /etc/init.d/redis
 vim /etc/local/redis/redis.conf
 /daemonize yes //后台运行
 
-vim /etc/init.d/redis
 
+```
+
+##
+systemctl daemon-reload
+
+# 2个redis哨兵，1个master，1个slave
+```$xslt
+wget http://download.redis.io/releases/redis-4.0.6.tar.gz
+tar -xvf redis-4.0.6.tar.gz
+cd redis-4.0.6.tar.gz
+yum -y install gcc
+make 
+#如果编译报错，使用以下命令
+#jemalloc重载了Linux下的ANSI C的malloc和free函数。解决办法：make时添加参数。
+make MALLOC=libc
+
+mkdir /var/log/redis
+mkdir /usr/local/redis
+# 主
+mkdir -p /usr/local/redis/master/config
+# 从
+mkdir -p /usr/local/redis/slave/config
+chmod -R 755 /usr/local/redis
+
+
+# 主
+cp src/redis-server /usr/local/redis/master/
+cp src/redis-cli /usr/local/redis/master/
+cp redis.conf /usr/local/redis/master/config/
+cp src/redis-sentinel /usr/local/redis/master/
+cp sentinel.conf /usr/local/redis/master/config/
+# 从
+cp src/redis-server /usr/local/redis/slave/
+cp src/redis-cli /usr/local/redis/slave/
+cp redis.conf /usr/local/redis/slave/config/
+cp src/redis-sentinel /usr/local/redis/slave/
+cp sentinel.conf /usr/local/redis/slave/config/
+
+#主配置
+vim /usr/local/redis/master/config/redis.conf
+    daemonize yes //后台运行
+    port 6380 //端口
+    pidfile /var/run/redis_6380.pid //进程文件
+    logfile "/var/log/redis/redis_6380.log"  //日志文件
+    requirepass crm_redis   //redis密码
+    masterauth crm_redis    //主备密码，切换需要保持一致
+    bind 0.0.0.0 //远程开启
+    
+
+#从配置
+vim /usr/local/redis/slave/config/redis.conf
+    daemonize yes //后台运行
+    port 6381 //端口
+    pidfile /var/run/redis_6381.pid //进程文件
+    logfile "/var/log/redis/redis_6381.log"  //日志文件
+    requirepass crm_redis   //redis密码
+    slaveof 172.16.2.251 6380  //主节点
+    masterauth crm_redis    //主备密码，切换需要保持一致
+    bind 0.0.0.0 //远程开启
+
+
+# 启动查看状态
+./redis-server redis.config
+> info
+#主
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=127.0.0.1,port=6381,state=online,offset=17860,lag=0
+#从
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6382
+
+#哨兵配置
+#主
+vim /usr/local/redis/master/sentinel.conf
+    #后台运行 
+    daemonize yes
+    #日志
+    logfile "/var/log/redis/sentinel_26380.log"
+    #端口
+    port 26380
+    #监听主 1代表1个哨兵及以上检测主挂了就切换
+    sentinel monitor mymaster 127.0.0.1 6380 2
+    #如果3s内mymaster无响应，则认为mymaster宕机了 ，默认30秒 
+    sentinel down-after-milliseconds mymaster 3000  
+    #如果10秒后,mysater仍没活过来，则启动failover  ，默认3分钟
+    sentinel failover-timeout mymaster 10000 
+    #redis主节点密码  
+    sentinel auth-pass mymaster 123456
+#从
+vim /usr/local/redis/slave/sentinel.conf
+    #后台运行 
+    daemonize yes
+    #日志
+    logfile "/var/log/redis/sentinel_26381.log"
+    #端口
+    port 26381
+    #监听主 1代表1个哨兵及以上检测主挂了就切换
+    sentinel monitor mymaster 172.16.2.251 6380 2
+    #如果3s内mymaster无响应，则认为mymaster宕机了 ，默认30秒 
+    sentinel down-after-milliseconds mymaster 3000  
+    #如果10秒后,mysater仍没活过来，则启动failover  ，默认3分钟
+    sentinel failover-timeout mymaster 10000 
+    #redis主节点密码  
+    sentinel auth-pass mymaster 123456
+ 
+#守护进程
+cp
+vim /etc/init.d/redis
     # chkconfig:   2345 90 10
     # description:  Redis is a persistent key-value database
     REDISPORT=6379
@@ -241,10 +355,40 @@ chkconfig --add redis
 # 重载 systemctl 单元
 systemctl daemon-reload
 systemctl start redis
+    
+
+    
+
+
+
+
+
+
+
+
+
+
 ```
 
-##
-systemctl daemon-reload
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
