@@ -196,7 +196,7 @@ const store = new Vuex.Store({
     }
 })
 ```
-从上面的代码我们也可以看出，一个 store 有四个属性：state， getters, mutations, actions。下面我将从这四个属性开始讲。
+从上面的代码我们也可以看出，一个 store 有四个属性：state, getters, mutations, actions。下面我将从这四个属性开始讲。
 
 ## 1、State
 先来讲state。state 上存放的，说的简单一些就是变量，也就是所谓的状态。
