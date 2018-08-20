@@ -72,3 +72,4 @@ class c {
 
 ## 二、重点
 ![image](http://github.com/HejinYo/learn/blob/master/assets/img/jvm.png)
+![image](https://raw.github.com/juxuechen/ShareKit/cut-for-baby/share.jpg)
