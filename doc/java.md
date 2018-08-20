@@ -71,5 +71,4 @@ class c {
 + Xss - 每个线程的栈大小
 
 ## 二、重点
-![image](http://github.com/HejinYo/learn/assets/img/jvm.png)
-![image](https://raw.github.com/juxuechen/ShareKit/cut-for-baby/share.jpg)
+![image](https://raw.githubusercontent.com/HejinYo/learn/master/assets/img/jvm.png)
