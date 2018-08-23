@@ -83,9 +83,14 @@ socket=/data/mysqldata/data/mysql.sock
 default-character-set = utf8mb4
 
 
-# 服务器端配置
+# 服务器端配置 
+
 [mysqld]
 ---------------------------------------------------------
+#忘记密码时使用
+#skip-grant-tables
+#设置协议认证方式(重点啊)
+default_authentication_plugin=mysql_native_password
 port=3306
 
 #datadir=/var/lib/mysql 修改数据存储路径
@@ -247,4 +252,14 @@ CREATE USER ‘root‘@‘%‘ IDENTIFIED BY ‘123123‘;     //默认的密码
 GRANT ALL ON *.* TO ‘root‘@‘%‘; 
 
 ALTER USER ‘root‘@‘%‘ IDENTIFIED WITH mysql_native_password BY ‘123123‘;
+
+3.允许root用户远程访问
+
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%'IDENTIFIED BY '密码' WITH GRANT OPTION;
+
+4.Navicat11连接mysql8报错Client does not support authentication protocol requested by server; consider upgrading MySQL client
+
+ ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '密码';
+
+ FLUSH PRIVILEGES;
 ```
