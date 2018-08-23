@@ -70,6 +70,19 @@ class c {
 + Xmn - 年轻代堆大小
 + Xss - 每个线程的栈大小
 
+查询JDK默认JVM配置
+```java
+class test{
+    public static void main(String[] args) {
+        java.lang.management.MemoryUsage usage = java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        System.out.println("Max: " + usage.getMax());
+        System.out.println("Init: " + usage.getInit());
+        System.out.println("Committed: " + usage.getCommitted());
+        System.out.println("Used: " + usage.getUsed());
+    }
+}
+```
+
 ## 二、重点
 ![image](https://raw.githubusercontent.com/HejinYo/learn/master/assets/img/jvm.png)
 
