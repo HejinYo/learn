@@ -82,6 +82,7 @@ port=3306
 socket=/data/mysqldata/data/mysql.sock
 default-character-set = utf8mb4
 
+
 # 服务器端配置
 [mysqld]
 ---------------------------------------------------------
@@ -210,4 +211,40 @@ shell> mysqladmin -u root -p shutdown
 Enter password: (enter root password here)
 https://dev.mysql.com/doc/refman/8.0/en/default-privileges.html
 
+```
+
+## 开启远程&修改加密规则
+```text
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'Redhat@2018' PASSWORD EXPIRE NEVER; 
+一般是utf8mb4_general_ci和utf8mb4_bin,前者不区分大小写
+修改加密规则
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'password' PASSWORD EXPIRE NEVER; 
+1
+password 为你当前密码。
+
+9.更新 root 用户密码
+
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'password'; 
+1
+password 为你新设置的密码。
+
+10.刷新权限
+
+FLUSH PRIVILEGES; 
+
+方法1
+
+CREATE USER ‘root‘@‘%‘ IDENTIFIED WITH mysql_native_password  BY ‘123123‘;      //修改密码认证方式为mysql_native_password
+
+GRANT ALL ON *.* TO ‘root‘@‘%‘;
+
+方法2
+
+CREATE USER ‘root‘@‘%‘ IDENTIFIED BY ‘123123‘;     //默认的密码认证插件caching_sha2_password
+
+GRANT ALL ON *.* TO ‘root‘@‘%‘; 
+
+ALTER USER ‘root‘@‘%‘ IDENTIFIED WITH mysql_native_password BY ‘123123‘;
 ```
