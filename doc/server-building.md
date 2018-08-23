@@ -89,8 +89,11 @@ default-character-set = utf8mb4
 ---------------------------------------------------------
 #忘记密码时使用
 #skip-grant-tables
+
 #设置协议认证方式(重点啊)
 default_authentication_plugin=mysql_native_password
+
+# 端口
 port=3306
 
 #datadir=/var/lib/mysql 修改数据存储路径
