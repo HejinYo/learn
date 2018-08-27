@@ -57,7 +57,7 @@ systemctl disable firewalld
 |mysql-community-client |[mysql-community-client](https://cdn.mysql.com//Downloads/MySQL-8.0/mysql-community-client-8.0.12-1.el7.x86_64.rpm "mysql-community-client")|
 |mysql-community-common	|[mysql-community-common](https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-community-common-8.0.12-1.el7.x86_64.rpm "mysql-community-common")|
 |mysql-community-libs	|[mysql-community-libs](https://cdn.mysql.com//Downloads/MySQL-8.0/mysql-community-libs-8.0.12-1.el7.x86_64.rpm "mysql-community-libs")|
-|mysql-community-libs-compat	|[mysql-community-libs-compat](https://github.com/younghz/Markdown "Markdown")|
+|mysql-community-libs-compat	|[mysql-community-libs-compat](https://cdn.mysql.com//Downloads/MySQL-8.0/mysql-community-libs-compat-8.0.12-1.el7.x86_64.rpm "Markdown")|
 
 ## 3、开始安装
 ```text
@@ -73,11 +73,16 @@ yum remove mariadb-libs
 ## 安装依赖库
 rpm -ivh mysql-community-libs-8.0.12-1.el7.x86_64.rpm
 
+## 安装XtraBackup需要的依赖
+rpm -ivh mysql-community-libs-compat-8.0.12-1.el7.x86_64.rpm
+
 ## 安装客户端
 rpm -ivh mysql-community-client-8.0.12-1.el7.x86_64.rpm 
 
 # 安装服务端
 rpm -ivh mysql-community-server-8.0.12-1.el7.x86_64.rpm
+
+
 ```
 
 ## 4、安装布局
@@ -198,7 +203,7 @@ mysql> FLUSH PRIVILEGES;
 ```
 
 # 二、主从配置
-
+## 1、主从配置
 ```text
 --------------------------主库配置----------------------
 # 添加用户
@@ -247,13 +252,13 @@ mysql> show slave status\G;
 mysql> stop slave;
 mysql> reset slave all;
 ```
-# 三、主从配置
+## 2、主主配置
 原理：从添加主配置，主添加从配置
 
 
 
 
-# 问题排查
+## 3、问题排查
 ```text
 Navicat 执行sql报错：
  1055 - Expression #1 of ORDER BY clause is not in GROUP BY clause and contains nonaggregated column 'information_schema.PROFILING.SEQ' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
@@ -291,9 +296,10 @@ mysql> show slave status\G;
 Slave_IO_Running: Yes
 Slave_SQL_Running: Yes
 ```
+## 4、跳过主从复制出现的错误
+https://blog.csdn.net/jesseyoung/article/details/40585809
 
-
-## 其他配置详情
+## 5、其他配置详情
 ```text
 # 记录二进制日志文件名称，默认为binlog，每次重新启动mysql都会新建一个binlog
 log-bin = binlog
@@ -312,4 +318,191 @@ log-bin = binlog
 当设置为0，该模式速度最快，但不太安全，mysqld进程的崩溃会导致上一秒钟所有事务数据的丢失。
 
 当设置为1，该模式是最安全的，但也是最慢的一种方式。在mysqld 服务崩溃或者服务器主机crash的情况下，binary log 只有可能丢失最多一个语句或者一个事务。。
+```
+
+## 6、增加从库
+开始只有一个MySQL实例在运行，后期因为安全性，压力，备份等原因需要在此实例的基础上面新增一个从库
+
+MySQL主库已经运行一段时间了，里面已经有相当多数据，我们需要将这些数据备份出来，
+然后从库再从备份的节点同步数据，这样来保持主从的数据一致性，并且在操作过程中最好不要影响我们的业务正常运行。
+最终决定使用xtrabackup来备份数据，因为用xtrabackup备份数据的时候不需要琐表，
+但只限于InnoDB引擎的数据库和XtraDB引擎的数据库，对于MyISAM引擎的数据库还是会琐表
+
+### 第一步：部署从数据库服务器，最好数据库版本一致，部署过程省略
+
+### 第二步：安装XtraBackup 
+```text
+xtrabackup 工具目前不支持 mysql 8.0，https://jira.percona.com/browse/PXB-1517
+支持计划 2018-03-27 3:24 PM开始，截至2018-08-27还未支持
+
+yum install http://www.percona.com/downloads/percona-release/redhat/0.1-6/percona-release-0.1-6.noarch.rpm
+yum list | grep percona
+yum install percona-xtrabackup-24
+
+```
+
+### 第三步：备份数据
+
+注意：以需要使用root用户执行，或者使用sudo权限执行
+
+### 备份整个库 
+```text
+xtrabackup --user=root --password=Mysql@2018 --target-dir=/root/mysql_bak -S /data/mysqldata/data/mysql.sock --backup
+
+--user          指定数据库访问用户名
+--password      指定数据库访问密码，如果密码有特殊字符需要使用单引号引起来
+--target-dir    指定备份路径，最好写绝对路径
+--backup        与--target-dir选项一起使用
+-S              指定mysql.sock文件位置
+```
+
+### 备份单个库
+```text
+xtrabackup --user=root --password=Mysql@2018 --databases=test1 --target-dir=/root/mysql_bak -S /data/mysqldata/data/mysql.sock --backup
+--databases    指定需要备份的库名
+```
+
+### 备份多个库
+```text
+xtrabackup --user=root --password=Mysql@2018 --databases="test1 test2 test3" --target-dir=/root/mysql_bak -S /data/mysqldata/data/mysql.sock --backup
+--databases    多库用双引号引起来，使用空格进行分隔
+```
+
+###备份某个库的指定表
+
+```text
+xtrabackup --user=root --password=Mysql@2018 --databases="test1.tables1 test2.tables2 test3.tables3" --target-dir=/root/mysql_bak -S /data/mysqldata/data/mysql.sock --backup
+--databases    备份表使用库名.表名的方式，如果是多个表就使用双引号引起来，不同表使用空格分隔
+```
+
+## 第六步：将数据还原到从服务器
+
+注意：还原之前需要停止从库数据库服务并清空从服务器数据目录，如果有需要的数据就先备份到其实地方
+```text
+# 停止服务
+service mysqld restart || systemctl restart mysqld
+# 备份原数据
+mkdir /data/mysql_bak
+mv /data/mysql/* /data/mysql_bak
+还原操作
+
+xtrabackup --prepare --target-dir=/data/mysql_slave
+xtrabackup --copy-back --target-dir=/data/mysql_slave
+```
+
+## 第七步：启动数据库并启用主从
+```text
+
+# 将原备份数据复制回原目录，注意：ib_buffer_pool ibdata1 ib_logfile0 ib_logfile1四个文件不要覆盖
+# 如果从库没有数据需要往回复制的话就不需要cp这步操作
+cp -r /data/mysql_bak/* /data/mysql
+chown -R mysql:mysql /data/mysql
+service mysqld restart || systemctl restart mysqld
+执行以下命令
+
+mysql> change master to master_host='172.16.10.10',master_port=3306,master_user='slave',master_password='123qweASD',master_log_file='mysql-bin.000011',master_log_pos=154;
+master_host：             master服务器的IP地址
+
+master_port：             master服务器的端口
+
+master_user：             master服务器授权从服务器主从同步的用户名
+
+master_password：    master服务器授权从服务器主从同步的密码
+
+master_log_file：        从主服务器备份出来的文件：xtrabackup_info中获取
+
+grep "binlog_pos" xtrabackup_info | awk -F "'" '{print $2}'
+master_log_pos：       从主服务器备份出来的文件：xtrabackup_info中获取
+
+grep "binlog_pos" xtrabackup_info | awk -F "'" '{print $4}'
+执行以下命令启用主从同步
+
+mysql> start slave;
+小知识：停止主从同步命令为
+
+# 以下为扩展知识命令，如果执行后需要再执行上条命令start slave;
+mysql> stop slave;
+
+```
+
+## 第八步：测试并检查主从状态
+```text
+mysql> show slave status \G;
+如果看以以下两个值为Yes说明主从同步正常
+
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+```
+
+
+## 第九步：测试
+
+可以修改下需要同步的库，或者表的数据看上是否能正常同步去，或者在备份完的时候就去修改下数据，这时候备份里同是没有此修改记录，当启用主从同步的时候看下数据是否会同步过来
+
+
+
+## mysqldump备份主库
+恢复到从库，mysqldump是逻辑备份，数据量大时，备份速度会很慢，锁表的时间也会很长
+
+### 1、备份主库
+
+```text
+
+mysqldump -uroot -pMysql@2018 --routines --single-transaction --all-databases --master-data=2 > mustang.$(date +%F).sql
+
+
+参数说明：https://www.cnblogs.com/qq78292959/p/3637135.html
+--routines：导出存储过程和函数
+--single_transaction：导出开始时设置事务隔离状态，并使用一致性快照开始事务，然后unlock tables; 而lock-tables是锁住一张表不能写操作，直到dump完毕。
+--master-data：默认等于1，将dump起始（change master to）binlog点和pos值写到结果中，等于2是将change master to写到结果中并注释。
+
+
+
+```
+
+### 2. 把备份库拷贝到从库
+```text
+#scp mustang.sql root@192.168.231.132:/root/
+```
+
+### 3. 在主库创建test_tb表，模拟数据库新增数据，weibo.sql是没有的
+```text
+mysql>create table test_tb (id int,name varchar(30));
+
+```
+
+### 4. 从库导入备份库
+```text
+mysql -uroot -pMysql@2018 < ~/mysql.2018-08-27.sql
+
+```
+### 5. 在备份文件weibo.sql查看binlog和pos值
+```text
+
+head mysql.2018-08-27.sql -n80 | grep "MASTER_LOG_POS"
+
+-- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000007', MASTER_LOG_POS=5728;
+
+```
+
+### 6. 从库设置从这个日志点同步，并启动
+```text
+
+CHANGE MASTER TO MASTER_HOST='192.168.231.131', MASTER_USER='crm_slave', MASTER_PASSWORD='Slave@2018',MASTER_LOG_FILE='mysql-bin.000007',master_log_pos=5728;
+
+可以看到IO和SQL线程均为YES，说明主从配置成功。
+```
+
+### 7. 从库查看weibo库里面的表
+```text
+mysql> show tables;
++-----------------+
+| Tables_in_jelly |
++-----------------+
+| biz_customer    |
+| sys_user        |
+| test_tb         |
++-----------------+
+3 rows in set (0.08 sec)
+发现刚才模拟创建的test_tb表已经同步过来！
 ```
