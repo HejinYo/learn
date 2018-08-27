@@ -456,13 +456,11 @@ mysqldump -uroot -pMysql@2018 --routines --single-transaction --all-databases --
 --single_transaction：导出开始时设置事务隔离状态，并使用一致性快照开始事务，然后unlock tables; 而lock-tables是锁住一张表不能写操作，直到dump完毕。
 --master-data：默认等于1，将dump起始（change master to）binlog点和pos值写到结果中，等于2是将change master to写到结果中并注释。
 
-
-
 ```
 
 ### 2. 把备份库拷贝到从库
 ```text
-#scp mustang.sql root@192.168.231.132:/root/
+#scp mustang.2018-08-27.sql root@192.168.231.132:/root/
 ```
 
 ### 3. 在主库创建test_tb表，模拟数据库新增数据，weibo.sql是没有的
@@ -473,13 +471,13 @@ mysql>create table test_tb (id int,name varchar(30));
 
 ### 4. 从库导入备份库
 ```text
-mysql -uroot -pMysql@2018 < ~/mysql.2018-08-27.sql
+mysql -uroot -pMysql@2018 < ~/mustang.2018-08-27.sql
 
 ```
 ### 5. 在备份文件weibo.sql查看binlog和pos值
 ```text
 
-head mysql.2018-08-27.sql -n80 | grep "MASTER_LOG_POS"
+head mustang.2018-08-27.sql -n80 | grep "MASTER_LOG_POS"
 
 -- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000007', MASTER_LOG_POS=5728;
 
@@ -493,7 +491,7 @@ CHANGE MASTER TO MASTER_HOST='192.168.231.131', MASTER_USER='crm_slave', MASTER_
 可以看到IO和SQL线程均为YES，说明主从配置成功。
 ```
 
-### 7. 从库查看weibo库里面的表
+### 7. 从库查看库里面的表
 ```text
 mysql> show tables;
 +-----------------+
