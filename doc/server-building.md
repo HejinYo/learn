@@ -68,7 +68,7 @@ rpm -ivh mysql-community-common-8.0.12-1.el7.x86_64.rpm
 yum list installed | grep mariadb-libs
 
 ## 删除掉默认安装的mysql依赖库
-yum remove mariadb-libs
+yum remove mariadb-libs -y
 
 ## 安装依赖库
 rpm -ivh mysql-community-libs-8.0.12-1.el7.x86_64.rpm
@@ -193,6 +193,17 @@ mysql> select host, user, authentication_string, plugin from user;
 
 # 修改规则 这里需要指定localhost，因为8.0这里好像不支持通配符
 mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Mysql@2018';
+
+CREATE USER 'root'@'%' IDENTIFIED BY 'Mysql@2018';
+
+grant all privileges on *.* to 'root'@'%' identified by 'Mysql@2018';
+
+# 创建主从复制帐号
+CREATE USER 'slave'@'%' IDENTIFIED BY 'Slave@2018';
+
+# 授权读写所有库所有表
+grant all privileges on *.* to 'slave'@'%' identified by 'Slave@2018';
+
 mysql> FLUSH PRIVILEGES; 
 
 # 开启远程
@@ -471,7 +482,7 @@ mysql>create table test_tb (id int,name varchar(30));
 
 ### 4. 从库导入备份库
 ```text
-mysql -uroot -pMysql@2018 < ~/mustang.2018-08-27.sql
+mysql -uroot -pMysql@2018 < ~/mustang.2018-08-28.sql
 
 ```
 ### 5. 在备份文件weibo.sql查看binlog和pos值
