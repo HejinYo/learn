@@ -110,6 +110,8 @@ rpm -ivh mysql-community-server-8.0.12-1.el7.x86_64.rpm
 
 ### 4、修改默认配置（先不着急启动服务）
 ```text
+# 这里是基本配置，主从配置详情看最后部分
+
 vim /etc/my.cnf
 
 ---------------------------------------------------------
@@ -121,6 +123,7 @@ default-character-set = utf8mb4
 
 # 服务器端配置 
 [mysqld]
+
 #忘记密码时使用
 #skip-grant-tables
 
@@ -130,16 +133,16 @@ default_authentication_plugin=mysql_native_password
 # 端口
 port=3306
 
-#datadir=/var/lib/mysql 修改数据存储路径
+# 修改数据存储路径
 datadir=/data/mysqldata/data
 
-#socket=/var/lib/mysql/mysql.sock 通信文件路径
+# 通信文件路径
 socket=/data/mysqldata/data/mysql.sock
 
 # 错误日志路径
 log-error=/var/log/mysqld.log 
 
-#pid-file=/var/run/mysqld/mysqld.pid 进程文件路径
+# 进程文件路径
 pid-file=/data/mysqldata/data/mysql.pid
 ---------------------------------------------------------
 # 创建数据目录
@@ -191,25 +194,28 @@ mysql>FLUSH PRIVILEGES;
 mysql> use mysql;
 mysql> select host, user, authentication_string, plugin from user; 
 
-# 修改规则 这里需要指定localhost，因为8.0这里好像不支持通配符
+# 修改规则 这里需要指定localhost
 mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Mysql@2018';
 
-CREATE USER 'root'@'%' IDENTIFIED BY 'Mysql@2018';
-
-grant all privileges on *.* to 'root'@'%' identified by 'Mysql@2018';
-
-# 创建主从复制帐号
-CREATE USER 'slave'@'%' IDENTIFIED BY 'Slave@2018';
-
-# 授权读写所有库所有表
-grant all privileges on *.* to 'slave'@'%' identified by 'Slave@2018';
-
+#刷新配置
 mysql> FLUSH PRIVILEGES; 
 
-# 开启远程
+# 开启远程 方法一
+# 选择 mysql库
 mysql> use mysql;
+
+# 主机更新为所有
 mysql> update user set host='%' where user ='root';
+
+#刷新配置
 mysql> FLUSH PRIVILEGES; 
+
+# 开启远程 方法二
+# 创建一个用户
+mysql> CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'Mysql@2018';
+
+# 给这个用户授权
+mysql> grant all privileges on *.* to 'root'@'%' identified by 'Mysql@2018';
 
 ```
 
@@ -268,31 +274,25 @@ mysql> reset slave all;
 
 
 
-
 ## 3、问题排查
 ```text
 Navicat 执行sql报错：
  1055 - Expression #1 of ORDER BY clause is not in GROUP BY clause and contains nonaggregated column 'information_schema.PROFILING.SEQ' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
 
 # 查询sql_mode
-select version(), @@sql_mode;
+mysql> select version(), @@sql_mode;
 
 # 去掉 ONLY_FULL_GROUP_BY
-SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY','')); 
+mysql> SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY','')); 
+
+# 解决navicat执行sql后报警
+vim /etc/my.cnf
+    sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
+
 ```
 
 ```text
-MySQL主从同步报错排错结果及修复过程之：Slave_SQL_Running: No
-从库报错内容为：创建库失败
-mysql> show slave status\G;
-Slave_IO_Running: Yes
-Slave_SQL_Running: No
-Last_Error: Error 'Can't drop database 'lcp'; database doesn't exist' on query. Default database: 'lcp'. Query: 'drop database lcp'
-
-查看日志，发现错误报告，不能与主库同步，上一条报告lcp库已存在，
-原因：想创建“lcp”库却发现此库已存在，想删掉“lcp”库，却发现系统报错此库不存在
-
-解决方案：将binglog指针下移一个位置。
+MySQL主从同步报错,将binglog指针下移一个位置。
 mysql> slave stop; 
 Query OK, 0 rows affected (0.01 sec)
 
@@ -301,11 +301,6 @@ Query OK, 0 rows affected (0.00 sec)
 
 mysql> slave start;
 Query OK, 0 rows affected (0.00 sec)
-
-mysql> show slave status\G;
-
-Slave_IO_Running: Yes
-Slave_SQL_Running: Yes
 ```
 ## 4、跳过主从复制出现的错误
 https://blog.csdn.net/jesseyoung/article/details/40585809
@@ -458,8 +453,7 @@ Slave_SQL_Running: Yes
 ### 1、备份主库
 
 ```text
-
-mysqldump -uroot -pMysql@2018 --routines --single-transaction --all-databases --master-data=2 > mustang.$(date +%F).sql
+mysqldump -uroot -pMysql@2018 --routines --single-transaction --databases crm mustang_crm mustang_selfexam mustang_v2 quartz --master-data=2 > mustang.sql
 
 
 参数说明：https://www.cnblogs.com/qq78292959/p/3637135.html
@@ -474,18 +468,12 @@ mysqldump -uroot -pMysql@2018 --routines --single-transaction --all-databases --
 #scp mustang.2018-08-27.sql root@192.168.231.132:/root/
 ```
 
-### 3. 在主库创建test_tb表，模拟数据库新增数据，weibo.sql是没有的
-```text
-mysql>create table test_tb (id int,name varchar(30));
-
-```
-
-### 4. 从库导入备份库
+### 3. 从库导入备份库
 ```text
 mysql -uroot -pMysql@2018 < ~/mustang.2018-08-28.sql
 
 ```
-### 5. 在备份文件weibo.sql查看binlog和pos值
+### 4. 在备份文件weibo.sql查看binlog和pos值
 ```text
 
 head mustang.2018-08-27.sql -n80 | grep "MASTER_LOG_POS"
@@ -496,22 +484,553 @@ head mustang.2018-08-27.sql -n80 | grep "MASTER_LOG_POS"
 
 ### 6. 从库设置从这个日志点同步，并启动
 ```text
-
-CHANGE MASTER TO MASTER_HOST='192.168.231.131', MASTER_USER='crm_slave', MASTER_PASSWORD='Slave@2018',MASTER_LOG_FILE='mysql-bin.000007',master_log_pos=5728;
+mysql> start slave;
+mysql> CHANGE MASTER TO MASTER_HOST='192.168.231.131', MASTER_USER='crm_slave', MASTER_PASSWORD='Slave@2018',MASTER_LOG_FILE='mysql-bin.000007',master_log_pos=5728;
+mysql> stop slave;
+mysql> show slave status\G;
 
 可以看到IO和SQL线程均为YES，说明主从配置成功。
 ```
 
-### 7. 从库查看库里面的表
+
+# master.cfn 主库配置文件 （mysql 8.0）
 ```text
-mysql> show tables;
-+-----------------+
-| Tables_in_jelly |
-+-----------------+
-| biz_customer    |
-| sys_user        |
-| test_tb         |
-+-----------------+
-3 rows in set (0.08 sec)
-发现刚才模拟创建的test_tb表已经同步过来！
+
+[client]
+
+# 客户端连接端口
+port=3306
+
+# 客户端直接连接服务器端的socket文件地址
+socket = /data/mysqldata/data/mysql.sock
+
+# 默认字符集
+default-character-set = utf8mb4
+
+
+[mysqld] 
+
+#忘记密码时使用
+#skip-grant-tables
+
+#设置协议认证方式(重点)
+default_authentication_plugin=mysql_native_password
+
+#----------------------------------------------主从和基本配置 START--------------------------------------------------#
+
+# 主库的主机名，建议为IP地址，容易辨别
+report-host=192.168.231.131
+
+# 服务ID（8.0默认为1），主要用于主从复制，不配置server-id或者配置值为0，那么主服务器将拒绝所有从服务器的连接
+server_id = 131
+
+# 服务监听端口
+port = 3306
+
+# 进程持有用户
+user = mysql
+
+# 数据目录
+datadir = /data/mysqldata/data
+
+# 进程文件路径
+pid-file = /data/mysqldata/data/mysql.pid
+
+# 套接字文件路径
+socket = /data/mysqldata/data/mysql.sock
+
+# 数据库名和表名的大小写的。1表示不区分大小写（8.0默认1）
+lower_case_table_names = 1
+
+# 默认事物引擎
+default_storage_engine = innodb
+
+# 记录二进制日志文件名称，默认为binlog，每次重新启动mysql都会新建一个binlog
+log-bin = mysql-bin
+
+# 要同步的mstest数据库,不设置复制所有库，要同步多个数据库，就多加几个replicate-db-db=数据库名 
+#binlog-do-db=jelly
+
+# 要忽略的数据库
+#binlog-ignore-db=mysql
+
+# 自增ID配置，主主配置需要注意，复制的时候避免主键冲突，可考虑单双主键
+auto-increment-increment = 2
+auto-increment-offset = 1
+
+# 接收的更新记录到自己的二进制日志中,默认值（> = 8.0.3）TRUE （<= 8.0.2）FALSE
+log_slave_updates = 1 
+
+# 二进制日志有效期，>= 8.0.11 默认30天
+binlog_expire_logs_seconds = 86400
+
+# 二进制日志文件最大，默认1GB
+max_binlog_size = 1024MB 
+
+# 复制的时候同意所有操作，如创建function
+log_bin_trust_function_creators = true
+
+# 字符集和排序规则默认配置
+character-set-client-handshake = FALSE 
+character-set-server = utf8mb4 
+collation-server = utf8mb4_unicode_ci 
+init_connect='SET NAMES utf8mb4'
+
+# 解决navicat执行sql后报警
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
+
+
+#----------------------------------------------主从和基本配置 END--------------------------------------------------#
+
+#----------------------------------------------日志配置 START--------------------------------------------------#
+
+# 主要是控制显示时间 error log、slow_log、genera log,不会影响 general log 和 slow log 写到表 (mysql.general_log, mysql.slow_log)
+log_timestamps = SYSTEM
+
+# 日志记录路径
+log-error = /var/log/mysql/mysqld.log
+
+# 启用slow sql
+slow_query_log = 1
+
+# slow sql 设置 1s
+long_query_time = 1 
+
+# slow sql 日志路径
+slow_query_log_file =/var/log/mysql/mysql-slow.log
+
+# SQL语句没有使用索引记录到慢查询日志文件中(默认不记录)
+log_queries_not_using_indexes = 1
+
+# 日志记录使用混合格式
+binlog_format = mixed
+
+# binlog缓存大小,默认32k
+binlog_cache_size = 1M
+
+#----------------------------------------------日志配置 END--------------------------------------------------#
+
+#=========================================MYSQL Commmon Specific options=====================================#
+# 多个连续连接请求在没有成功连接的情况下中断，服务器会阻止该主机进一步连接(默认100)
+max_connect_errors = 1000
+
+# 设置MySQL服务器和客户端（包括复制从属服务器）之间任何单个消息大小的上限（默认64MB）
+max_allowed_packet = 64M
+
+# 允许的最大同时客户端连接数（默认151）
+max_connections = 3072
+
+# 操作系统允许mysqld打开的文件数（默认5000，最大操作系统限制）
+open_files_limit = 10000
+
+# 所有线程的打开表的数量（默认4000）
+table_open_cache = 2048
+
+# MySQL可以拥有的未完成连接请求的数量
+back_log = 512
+
+# 允许用户创建的MEMORY表增长的最大大小（默认16M）
+max_heap_table_size = 32M
+
+# 对MyISAM表执行顺序扫描的每个线程为其扫描的每个表分配一个此大小的缓冲区
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 4M
+join_buffer_size = 4M
+thread_cache_size = 32
+
+# 最小索引长度（默认4）
+ft_min_word_len = 1
+
+#=========================================INNODB Specific options===========================================#
+
+
+# 限制mysql的使用内存（默认最小128）
+#innodb_buffer_pool_size = 3G
+
+innodb_data_home_dir = /data/mysqldata/innodb/data
+innodb_data_file_path = ibdata1:1G:autoextend
+innodb_write_io_threads = 16
+innodb_read_io_threads = 16
+innodb_thread_concurrency = 32
+innodb_flush_log_at_trx_commit = 2
+
+## innodb_fast_shutdown
+innodb_log_buffer_size = 8M
+innodb_log_file_size = 256M
+innodb_log_files_in_group = 3
+innodb_log_group_home_dir=/data/mysqldata/innodb/group
+innodb_max_dirty_pages_pct = 90
+
+## innodb_flush_method=O_DSYNC
+innodb_lock_wait_timeout = 120
+innodb_undo_directory=/data/mysqldata/innodb/undo
+
+
+[mysqld_safe]
+log-error = /var/log/mysql/mysqld.log
+pid-file = /data/mysqldata/data/mysql.pid
+
+!includedir /etc/my.cnf.d
+
+[mysqldump]
+quick
+max_allowed_packet = 16M
+
+[mysql] 
+no-auto-rehash
+# 默认字符集
+default-character-set = utf8mb4 
+
+[myisamchk]
+key_buffer_size = 512M
+sort_buffer_size = 512M
+read_buffer = 8M
+write_buffer = 8M
+
+[mysqlhotcopy]
+interactive-timeout
+```
+
+# slave.cfn 从库配置文件（mysql 8.0）
+```text
+[client]
+
+# 客户端连接端口
+port=3306
+
+# 客户端直接连接服务器端的socket文件地址
+socket = /data/mysqldata/data/mysql.sock
+
+# 默认字符集
+default-character-set = utf8mb4
+
+
+[mysqld] 
+
+#忘记密码时使用
+#skip-grant-tables
+
+#设置协议认证方式(重点)
+default_authentication_plugin=mysql_native_password
+
+#----------------------------------------------主从和基本配置 START--------------------------------------------------#
+
+# 主库的主机名，建议为IP地址，容易辨别
+report-host=192.168.231.128
+
+# 从库只读 但root用户还是可以写操作
+# read-only = 1
+
+# 服务ID（8.0默认为1），主要用于主从复制，不配置server-id或者配置值为0，那么主服务器将拒绝所有从服务器的连接
+server_id = 128
+
+# 服务监听端口
+port = 3306
+
+# 进程持有用户
+user = mysql
+
+# 数据目录
+datadir = /data/mysqldata/data
+
+# 进程文件路径
+pid-file = /data/mysqldata/data/mysql.pid
+
+# 套接字文件路径
+socket = /data/mysqldata/data/mysql.sock
+
+# 数据库名和表名的大小写的。1表示不区分大小写（8.0默认1）
+lower_case_table_names = 1
+
+# 默认事物引擎
+default_storage_engine = innodb
+
+# 记录二进制日志文件名称，默认为binlog，每次重新启动mysql都会新建一个binlog
+log-bin = mysql-bin
+
+# 要同步的mstest数据库,不设置复制所有库，要同步多个数据库，就多加几个replicate-db-db=数据库名 
+#binlog-do-db=jelly
+
+# 要忽略的数据库
+#binlog-ignore-db=mysql
+
+# 自增ID配置，主主配置需要注意，复制的时候避免主键冲突，可考虑单双主键
+auto-increment-increment = 2
+auto-increment-offset = 2
+
+# 接收的更新记录到自己的二进制日志中,默认值（> = 8.0.3）TRUE （<= 8.0.2）FALSE
+log_slave_updates = 1 
+
+# 二进制日志有效期，>= 8.0.11 默认30天
+binlog_expire_logs_seconds = 86400
+
+# 二进制日志文件最大，默认1GB
+max_binlog_size = 1024MB 
+
+# 复制的时候同意所有操作，如创建function
+log_bin_trust_function_creators = true
+
+# 字符集和排序规则默认配置
+character-set-client-handshake = FALSE 
+character-set-server = utf8mb4 
+collation-server = utf8mb4_unicode_ci 
+init_connect='SET NAMES utf8mb4'
+
+# 解决navicat执行sql后报警
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
+
+
+#----------------------------------------------主从和基本配置 END--------------------------------------------------#
+
+#----------------------------------------------日志配置 START--------------------------------------------------#
+
+# 主要是控制显示时间 error log、slow_log、genera log,不会影响 general log 和 slow log 写到表 (mysql.general_log, mysql.slow_log)
+log_timestamps = SYSTEM
+
+# 日志记录路径
+log-error = /var/log/mysql/mysqld.log
+
+# 启用slow sql
+slow_query_log = 1
+
+# slow sql 设置 1s
+long_query_time = 1 
+
+# slow sql 日志路径
+slow_query_log_file =/var/log/mysql/mysql-slow.log
+
+# SQL语句没有使用索引记录到慢查询日志文件中(默认不记录)
+log_queries_not_using_indexes = 1
+
+# 日志记录使用混合格式
+binlog_format = mixed
+
+# binlog缓存大小,默认32k
+binlog_cache_size = 1M
+
+#----------------------------------------------日志配置 END--------------------------------------------------#
+
+#=========================================MYSQL Commmon Specific options=====================================#
+# 多个连续连接请求在没有成功连接的情况下中断，服务器会阻止该主机进一步连接(默认100)
+max_connect_errors = 1000
+
+# 设置MySQL服务器和客户端（包括复制从属服务器）之间任何单个消息大小的上限（默认64MB）
+max_allowed_packet = 64M
+
+# 允许的最大同时客户端连接数（默认151）
+max_connections = 3072
+
+# 操作系统允许mysqld打开的文件数（默认5000，最大操作系统限制）
+open_files_limit = 10000
+
+# 所有线程的打开表的数量（默认4000）
+table_open_cache = 2048
+
+# MySQL可以拥有的未完成连接请求的数量
+back_log = 512
+
+# 允许用户创建的MEMORY表增长的最大大小（默认16M）
+max_heap_table_size = 32M
+
+# 对MyISAM表执行顺序扫描的每个线程为其扫描的每个表分配一个此大小的缓冲区
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 4M
+join_buffer_size = 4M
+thread_cache_size = 32
+
+# 最小索引长度（默认4）
+ft_min_word_len = 1
+
+#=========================================INNODB Specific options===========================================#
+
+
+# 限制mysql的使用内存（默认最小128）
+#innodb_buffer_pool_size = 3G
+
+innodb_data_home_dir = /data/mysqldata/innodb/data
+innodb_data_file_path = ibdata1:1G:autoextend
+innodb_write_io_threads = 16
+innodb_read_io_threads = 16
+innodb_thread_concurrency = 32
+innodb_flush_log_at_trx_commit = 2
+
+## innodb_fast_shutdown
+innodb_log_buffer_size = 8M
+innodb_log_file_size = 256M
+innodb_log_files_in_group = 3
+innodb_log_group_home_dir=/data/mysqldata/innodb/group
+innodb_max_dirty_pages_pct = 90
+
+## innodb_flush_method=O_DSYNC
+innodb_lock_wait_timeout = 120
+innodb_undo_directory=/data/mysqldata/innodb/undo
+
+
+[mysqld_safe]
+log-error = /var/log/mysql/mysqld.log
+pid-file = /data/mysqldata/data/mysql.pid
+
+!includedir /etc/my.cnf.d
+
+[mysqldump]
+quick
+max_allowed_packet = 16M
+
+[mysql] 
+no-auto-rehash
+# 默认字符集
+default-character-set = utf8mb4 
+
+[myisamchk]
+key_buffer_size = 512M
+sort_buffer_size = 512M
+read_buffer = 8M
+write_buffer = 8M
+
+[mysqlhotcopy]
+interactive-timeout
+```
+
+# my.cfn (mysql 5.7.23)
+```text
+[client]
+port=3306
+socket = /data/mysqldata/data/mysql.sock
+default-character-set = utf8mb4
+
+[mysqld]
+server_id = 45
+report-host=172.16.3.45
+port = 3306
+user = mysql
+#basedir = /usr/local/mysql
+datadir = /data/mysqldata/data
+pid-file = /data/mysqldata/data/mysql.pid
+socket = /data/mysqldata/data/mysql.sock
+disable-partition-engine-check = 1
+lower_case_table_names = 1
+character-set-client-handshake = FALSE
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+init_connect = 'SET NAMES utf8mb4'
+default_storage_engine = innodb
+
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+
+#==================================================LOG=======================================================#
+log_timestamps = SYSTEM
+log-error = /var/log/mysql/mysqld.log
+long_query_time = 1 
+slow_query_log_file =/var/log/mysql/mysql-slow.log
+slow_query_log = 1
+log_queries_not_using_indexes = 1
+log-bin = mysql-bin
+log_bin_trust_function_creators = true
+binlog_format = mixed
+binlog_cache_size = 1M
+#binlog-do-db=all
+log_slave_updates = 1 
+
+auto-increment-increment = 2
+auto-increment-offset = 2
+
+## symbolic-links = 0
+expire_logs_days = 1
+max_binlog_size = 1024MB 
+tmpdir = /data/mysqldata/tmp
+tmp_table_size = 64M
+
+#=========================================MYSQL Commmon Specific options=====================================#
+max_connect_errors = 1000
+max_allowed_packet = 32M
+max_connections = 3072
+open_files_limit = 327680
+table_open_cache = 2048
+back_log = 512
+
+#==== not shared in every connections ====#
+max_heap_table_size = 32M
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 4M
+join_buffer_size = 4M
+thread_cache_size = 32
+# 1 ON,2 OFF,3 DEMAND
+query_cache_type = DEMAND
+query_cache_size = 64M
+query_cache_limit = 2M
+#==== not shared in every connections ====#
+ft_min_word_len = 1
+thread_stack = 256K
+# READ-UNCOMMITTED, READ-COMMITTED, REPEATABLE-READ, SERIALIZABLE.  
+transaction_isolation = REPEATABLE-READ
+explicit_defaults_for_timestamp = true
+
+#=========================================INNODB Specific options===========================================#
+
+## skip-innodb
+## innodb_additional_mem_pool_size = 16M
+#innodb_buffer_pool_size = 6G
+## innodb_buffer_pool_instances = 8
+innodb_data_file_path = ibdata1:1G:autoextend
+innodb_data_home_dir = /data/mysqldata/innodb/data
+innodb_write_io_threads = 16
+innodb_read_io_threads = 16
+## innodb_force_recovery = 1
+innodb_thread_concurrency = 32
+# 1 most safe mode
+# 2 good speed
+innodb_flush_log_at_trx_commit = 2
+## innodb_fast_shutdown
+innodb_log_buffer_size = 8M
+innodb_log_file_size = 256M
+innodb_log_files_in_group = 3
+innodb_log_group_home_dir=/data/mysqldata/innodb/group
+innodb_max_dirty_pages_pct = 90
+## innodb_flush_method=O_DSYNC
+innodb_lock_wait_timeout = 120
+innodb_undo_directory=/data/mysqldata/innodb/undo
+innodb_undo_tablespaces = 3
+innodb_undo_logs = 128
+# InnoDB every table has it's file
+innodb_file_per_table = 1
+innodb_buffer_pool_dump_at_shutdown = 1
+innodb_buffer_pool_load_at_startup = 1
+# 1 ON,0 OFF
+innodb_flush_neighbors = 0
+## innodb_lru_scan_depth = 2000
+## innodb_io_capacity = 4000
+## innodb_io_capacity_max = 8000
+
+## innodb_file_format = Barracuda
+## innodb_file_format_max = Barracuda
+## innodb_strict_mode = 1
+## innodb_print_all_deadlocks = 1
+
+[mysqld_safe]
+log-error=/var/log/mysql/mysqld.log
+pid-file=/data/mysqldata/data/mysql.pid
+open-files-limit = 65535
+
+!includedir /etc/my.cnf.d
+
+[mysqldump]
+quick
+max_allowed_packet = 16M
+
+[mysql]
+no-auto-rehash
+default-character-set = utf8mb4
+
+[myisamchk]
+key_buffer_size = 512M
+sort_buffer_size = 512M
+read_buffer = 8M
+write_buffer = 8M
+
+[mysqlhotcopy]
+interactive-timeout
+
 ```
