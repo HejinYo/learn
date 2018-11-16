@@ -4,7 +4,7 @@
 [Centos7安装并配置mysql5.6完美教程](http://blog.csdn.net/qq_17776287/article/details/53536761)
 
 ### 删除自带的mariadb
-```$xslt
+```text
 #查询出来已安装的mariadb 
 rpm -qa|grep mariadb
 
@@ -12,7 +12,7 @@ rpm -qa|grep mariadb
 rpm -e --nodeps mariadb-libs-5.5.41-2.el7_0.x86_64
 ```
 ### 准备工作
-```$xslt
+```text
 #本地上传
 rz  mysql-5.6.38-linux-glibc2.12-x86_64.tar.gz
 #网上下载
@@ -24,7 +24,7 @@ mv mysql-5.6.38-linux-glibc2.12-x86_64 /usr/local/mysql
 ```
 
 ### 开始配置
-```$xslt
+```text
 #创建用户组
 groupadd mysql
 
@@ -83,7 +83,7 @@ firewall-cmd --add-port=3306/tcp --permanent
 systemctl restat firewalld
 ```
 ### mysql 命令添加环境变量
-```$xslt
+```text
 #个人
 vim ~/.bash_profile
 #全局 
@@ -93,7 +93,7 @@ source ~/.bash_profile
 ```
 
 ### mysql配置
-```$xslt
+```text
 mysql -u root -p
 use mysql;
 #修改密码
@@ -107,7 +107,7 @@ flush privileges;
 
 ## 二、主从配置
 > 主配置
-```$xslt
+```text
 每个从数据库会使用一个MySQL账号来连接主数据库，所以我们要在主数据库里创建一个账号，并且该账号要授予 REPLICATION SLAVE 权限
 #添加用户
 CREATE USER 'crm_slave_1'@'192.168.10.%' IDENTIFIED BY 'crm_slave_1';
@@ -140,7 +140,7 @@ show master status;
 > 从配置
 [参考1](http://blog.csdn.net/envon123/article/details/76615059)
 [参考2](https://www.cnblogs.com/fxmemory/p/7198663.html)
-```$xslt
+```text
 #修改配置文件
 vim /etc/my.cnf
     [mysqld]
@@ -182,7 +182,7 @@ start slave 后复制正常
 > CentOS 7的服务systemctl脚本存放在：/usr/lib/systemd/，有系统（system）和用户（user）之分，需要开机不登陆就能运行的程序，存在系统服务里，即：/usr/lib/systemd/system目录下
   每一个服务以.service结尾，一般会分为3部分：[Unit]、[Service]和[Install]，我写的这个服务用于开机运行tomcat项目:
 
-```$xslt
+```text
 vim /usr/lib/systemd/system/tomcat.service  
 [Unit]  
 Description=tomcatapi  
@@ -204,13 +204,13 @@ WantedBy=multi-user.target
 [Install]部分是服务安装的相关设置，可设置为多用户的
 服务脚本按照上面编写完成后，以754的权限保存在/usr/lib/systemd/system目录下，这时就可以利用systemctl进行测试了
 最后用以下命令将服务加入开机启动即可：
-```$xslt
+```text
 systemctl enable tomcat  
 ```
 
 # 三、Redis 安装[参考](http://blog.csdn.net/gxw19874/article/details/51992125)
 ## 下载文件
-```$xslt
+```text
 wget http://download.redis.io/releases/redis-4.0.6.tar.gz
 tar -xvf redis-4.0.6.tar.gz
 cd redis-4.0.6.tar.gz
@@ -236,7 +236,7 @@ vim /etc/local/redis/redis.conf
 systemctl daemon-reload
 
 # 2个redis哨兵，1个master，1个slave
-```$xslt
+```text
 wget http://download.redis.io/releases/redis-4.0.6.tar.gz
 tar -xvf redis-4.0.6.tar.gz
 cd redis-4.0.6.tar.gz
