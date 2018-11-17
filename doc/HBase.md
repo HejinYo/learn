@@ -60,3 +60,22 @@ HBase包含可以与HBase进行通信的Shell。 HBase使用Hadoop文件系统�
 + truncate: 禁用，删除和重新创建一个指定的表。
 + Java client API: 在此之前所有上述命令，Java提供了一个客户端API来实现DML功能，CRUD（创建检索更新删除）操作更多的是通过编程，在org.apache.hadoop.hbase.client包下。 在此包HTable 的 Put和Get是重要的类。
 
+### 创建表
++ create 'test','info'
+### 列出HBase的所有表
++ list
+### 写入
++ put 'test','0001','info:username','henry'
++ pub 'test','0001','info:age','20'
+
+### 返回表数据
++ scan 'test'
+
+### 查看表信息
++ describe 'test'
+### 禁用表
++ disable 'test'
+### 是否启用
++ is_enabled 'test'
+### 删除表
++ drop 'test'
