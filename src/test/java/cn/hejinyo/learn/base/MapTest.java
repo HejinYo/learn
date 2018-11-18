@@ -18,7 +18,20 @@ public class MapTest {
 
         LinkedHashMap<String,Object> linkedHashMap=new LinkedHashMap<>();
         linkedHashMap.put(null,null);
+        System.out.println("key1".hashCode()>>>16);
+        System.out.println("key1".hashCode());
+        System.out.println("key".hashCode()>>>16);
 
+        System.out.println(hash("1235555"));
+        System.out.println(hash("1235555")&15);
+        System.out.println(hash("1235555")%16);
 
+    }
+
+    static int hash(Object key) {   //jdk1.8 & jdk1.7
+         int h;
+         // h = key.hashCode() 为第一步 取hashCode值
+         // h ^ (h >>> 16)  为第二步 高位参与运算
+         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 }

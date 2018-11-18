@@ -89,3 +89,32 @@ static 关键字主要有以下四种使用场景：
 #### TreeMap
 + 能够把它保存的记录根据键排序，默认是按键值的升序排序，也可以指定排序的比较器，当用Iterator遍历TreeMap时，得到的记录是排过序的。
 + 如果使用排序的映射，建议使用TreeMap。在使用TreeMap时，key必须实现Comparable接口或者在构造TreeMap传入自定义的Comparator，否则会在运行时抛出java.lang.ClassCastException类型的异常。
+
+
+### HashMap 实现原理
+从结构实现来讲，HashMap是数组+链表+红黑树（JDK1.8增加了红黑树部分）实现的
+
+> Node[] table的初始化长度length(默认值是16)，Load factor为负载因子(默认值是0.75)，threshold是HashMap所能容纳的最大数据量的Node(键值对)个数。threshold = length * Load factor
+
+> 当链表长度太长（默认超过8）时，链表就转换为红黑树，利用红黑树快速增删改查的特点提高HashMap的性能，其中会用到红黑树的插入、删除、查找等算法
+
+#### 实现 
+##### 1、确定哈希桶数组索引位置
+(h = key.hashCode()) ^ (h >>> 16) & (length-1) = h % 16
+
+##### 2、扩容机制
+Java里的数组是无法自动扩容的，方法是使用一个新的数组代替已有的容量小的数组
+
+
+
+
+
+
+
+
+
+
+
+
+
+
