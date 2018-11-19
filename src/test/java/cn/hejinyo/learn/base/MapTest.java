@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
  * @date :  2018/11/18 23:01
  */
 public class MapTest {
+    final static int x = 1;
     public static void main(String[] args) {
         HashMap<String,Object> hashMap = new HashMap<>(16);
         hashMap.put(null,null);
@@ -26,6 +27,13 @@ public class MapTest {
         System.out.println(hash("1235555")&15);
         System.out.println(hash("1235555")%16);
 
+        try{
+
+        }catch (Exception e){
+
+        }finally{
+
+        }
     }
 
     static int hash(Object key) {   //jdk1.8 & jdk1.7
