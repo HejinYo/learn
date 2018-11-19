@@ -13,8 +13,8 @@ public class ListTest {
             arrayList.add("arrayList_" + i);
         }
         System.out.println(arrayList.size());
-        Iterator listIterator = arrayList.listIterator();
-        while (listIterator.hasNext()){
+        Iterator<String> listIterator = arrayList.listIterator();
+        while (listIterator.hasNext()) {
             System.out.println(listIterator.next());
         }
 
@@ -29,22 +29,26 @@ public class ListTest {
         }
         System.out.println(linkedList.size());
 
-        Map<String,Object> map = new HashMap<>();
-        map.put("test1","1");
-        map.put("test2","2");
-        map.put("test3","3");
-        Iterator mapIterator = map.entrySet().iterator();
-        while (mapIterator.hasNext()){
-            Map.Entry<String,Object> entry = (Map.Entry) mapIterator.next();
+        Map<String, Object> map = new HashMap<>();
+        map.put("test1", "1");
+        map.put("test2", "2");
+        map.put("test3", "3");
+        Iterator<Map.Entry<String, Object>> mapIterator = map.entrySet().iterator();
+        while (mapIterator.hasNext()) {
+            Map.Entry<String, Object> entry = mapIterator.next();
             System.out.println(entry.getKey());
             System.out.println(entry.getValue());
         }
 
-        Vector<String> vector =new Vector<>();
+        Vector<String> vector = new Vector<>();
         vector.add("123");
         Iterator vectorIterater = vector.iterator();
-        while (vectorIterater.hasNext()){
+        while (vectorIterater.hasNext()) {
             System.out.println(vectorIterater.next());
         }
+
+        HashSet<String> set = new HashSet<>();
+        set.add("1");
+        Iterator<String> setIterator = set.iterator();
     }
 }
