@@ -42,3 +42,70 @@ synchronized取得的锁都是对象锁，而不是把一段代码或方法当�
 上诉两个线程通过对象O来完成交互，
 
 而对象上的wait()方法和notify()/notifyAll()方法的关系就如同开关信号一样，用来完成等待方和通知方之间的交互工作。
+![image](https://raw.githubusercontent.com/HejinYo/learn/master/assets/img/thread.png)
+
++ notify()锁不释放
+  当方法wait()被执行后，锁自动被释放，但执行完notify()方法后，锁不会自动释放。必须执行完notify()方法所在的synchronized代码块后才释放。
+ 
+
+## 线程池
++ 降低资源消耗。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。
++ 提高响应速度。当任务到达时，任务可以不需要的等到线程创建就能立即执行。
++ 提高线程的可管理性。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。
+
+## Executor 框架结构(主要由三大部分组成)
+
+### 1、任务
+执行任务需要实现的Runnable接口或Callable接口。
+Runnable接口或Callable接口实现类都可以被ThreadPoolExecutor或ScheduledThreadPoolExecutor执行。
+
+> Runnable接口不会返回结果但是Callable接口可以返回结果。后面介绍Executors类的一些方法的时候会介绍到两者的相互转换。
+
+### 2、任务的执行
+ScheduledThreadPoolExecutor和ThreadPoolExecutor这两个关键类实现了ExecutorService接口
+
+### 3、异步计算的结果
+Future接口以及Future接口的实现类FutureTask类。
+
+当我们把Runnable接口或Callable接口的实现类提交（调用submit方法）给ThreadPoolExecutor或ScheduledThreadPoolExecutor时，会返回一个FutureTask对象。
+
+
+```java
+public class ThreadPoolExecutorTest {
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                10,
+                10,
+                60,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(10)
+                );
+
+        executor.execute(() -> {
+            System.out.println("123");
+        });
+
+        Future future = executor.submit(() -> 12);
+        System.out.println(future.get());
+
+        executor.shutdown();
+
+    }
+}
+
+```
+
+## 各种线程池的适用场景介绍
+FixedThreadPool： 适用于为了满足资源管理需求，而需要限制当前线程数量的应用场景。它适用于负载比较重的服务器；
+
+SingleThreadExecutor： 适用于需要保证顺序地执行各个任务并且在任意时间点，不会有多个线程是活动的应用场景。
+
+CachedThreadPool： 适用于执行很多的短期异步任务的小程序，或者是负载较轻的服务器；
+
+ScheduledThreadPoolExecutor： 适用于需要多个后台执行周期任务，同时为了满足资源管理需求而需要限制后台线程的数量的应用场景，
+
+SingleThreadScheduledExecutor： 适用于需要单个后台线程执行周期任务，同时保证顺序地执行各个任务的应用场景。
+
+
+
